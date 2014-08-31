@@ -11,6 +11,12 @@
 <?php 
 header('Content-Type: text/plain');
 $now = date('Y.m.d, H:i');
+if(array_key_exists('PHP_AUTH_USER',$_SERVER)) {
+  $user = $_SERVER['PHP_AUTH_USER'];
+}
+else {
+  $user = 'unknown'; 
+}
 $dsn = "sqlite:triples.sqlite3";
 $con = new PDO ($dsn);
 
@@ -45,7 +51,23 @@ function sortMyCols($valA,$valB)
   if($valA == $valB){return 0;}
 }
 
-if(isset($_GET['file']))
+if(isset($_GET['update']))
+{
+  /* get original datum */
+  $query = $con->query('select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "'.$_GET['COL'].'";');
+  $val = $query->fetch();
+  
+  /* insert previous datum */
+  $con->exec('insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'].'",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user.'");');
+  
+  /* insert new datum */
+  $con->exec('update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'].' and COL like "'.$_GET['COL'].'";');
+
+  /* give simple feedback */
+  echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "'.$_GET['VAL'].'" on '.$now.'.';
+}
+
+else if(isset($_GET['file']))
 {
   /* get all columns */
   $sth = $con->prepare('select COL from '.$_GET['file'].';');
@@ -76,11 +98,11 @@ if(isset($_GET['file']))
   $results = $sth->fetchAll();
   foreach($results as $entry)
   {
-    if(array_key_exists($entry['ID'],$data))
+    try
     {
       $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
     }
-    else
+    catch(Exception $e)
     {
       $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
     }
