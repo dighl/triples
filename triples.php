@@ -61,37 +61,6 @@ if(isset($_GET['tables'])) {
   }
 }
 
-/* if update is passed as a keyword (no matter which content) in the url
- * the update procedure is carried out and content is written and 
- * backed up
- */
-else if(isset($_GET['update'])) {
-  
-  /* get original datum */
-  $query = $con->query(
-    'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
-    $_GET['COL'].'";'
-  );
-  $val = $query->fetch();
-  
-  /* insert previous datum */
-  $con->exec(
-    'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
-    '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user .
-    '");'
-  );
-  
-  /* insert new datum */
-  $con->exec(
-    'update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'] . 
-    ' and COL like "'.$_GET['COL'].'";'
-  );
-
-  /* give simple feedback */
-  echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
-    $_GET['VAL'].'" on '.$now.'.';
-}
-
 else if(isset($_GET['file'])) {
   
   /* get all columns */
