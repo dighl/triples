@@ -1,18 +1,18 @@
 <?php
-/* Basic script for triple store parsing.
+/* Basic script for handling Browsing and Modifiation of Triples
  *
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
- * created  : 2014-08-31 19:14
- * modified : 2014-08-31 19:14
+ * created  : 2014-08-31 22:09
+ * modified : 2014-09-03 10:31
  *
  */
 ?>
 <?php 
-header('Content-Type: text/plain');
-$now = date('Y.m.d, H:i');
-if(array_key_exists('PHP_AUTH_USER',$_SERVER)) {
-  $user = $_SERVER['PHP_AUTH_USER'];
+header('Content-Type: text/plain;charset=utf8');
+$now = date('Y.m.d, H:i.s');
+if(isset($_SERVER['REMOTE_USER'])) {
+  $user = $_SERVER['REMOTE_USER'];
 }
 else {
   $user = 'unknown'; 
@@ -20,8 +20,10 @@ else {
 $dsn = "sqlite:triples.sqlite3";
 $con = new PDO ($dsn);
 
-function sortMyCols($valA,$valB)
-{
+/* this is our sorter function that handles the order of
+ * columns in the data 
+ */
+function sortMyCols($valA,$valB) {
   $sorter = array(
     "DOCULECT" => 1,
     "CONCEPT" => 2,
@@ -30,45 +32,68 @@ function sortMyCols($valA,$valB)
     "CLUSTERID" => 5,
     "ALIGNMENT" => 6
   );
-  if(array_key_exists($valA, $sorter))
-  {
+  if(array_key_exists($valA, $sorter)) {
     $valA = $sorter[$valA];
   }
-  else
-  {
+  else {
     $valA = 10;
   }
-  if(array_key_exists($valB, $sorter))
-  {
+  if(array_key_exists($valB, $sorter)) {
     $valB = $sorter[$valB];
   }
-  else
-  {
+  else {
     $valB = 10;
   }
-  if($valA < $valB){return -1;}
-  if($valB < $valA){return 1;}
-  if($valA == $valB){return 0;}
+  if($valA < $valB) {return -1; }
+  if($valB < $valA) {return 1; }
+  if($valA == $valB) {return 0; }
 }
 
-if(isset($_GET['update']))
-{
+/* if site is called with keyword "tables", return all tables, each in 
+ * one line 
+ */
+if(isset($_GET['tables'])) {
+
+  $query = $con->query('select name from sqlite_master where name != "backup";');
+  $data = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  foreach ($data as $table) {
+    echo $table."\n";
+  }
+}
+
+/* if update is passed as a keyword (no matter which content) in the url
+ * the update procedure is carried out and content is written and 
+ * backed up
+ */
+else if(isset($_GET['update'])) {
+  
   /* get original datum */
-  $query = $con->query('select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "'.$_GET['COL'].'";');
+  $query = $con->query(
+    'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
+    $_GET['COL'].'";'
+  );
   $val = $query->fetch();
   
   /* insert previous datum */
-  $con->exec('insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'].'",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user.'");');
+  $con->exec(
+    'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
+    '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user .
+    '");'
+  );
   
   /* insert new datum */
-  $con->exec('update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'].' and COL like "'.$_GET['COL'].'";');
+  $con->exec(
+    'update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'] . 
+    ' and COL like "'.$_GET['COL'].'";'
+  );
 
   /* give simple feedback */
-  echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "'.$_GET['VAL'].'" on '.$now.'.';
+  echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
+    $_GET['VAL'].'" on '.$now.'.';
 }
 
-else if(isset($_GET['file']))
-{
+else if(isset($_GET['file'])) {
+  
   /* get all columns */
   $sth = $con->prepare('select COL from '.$_GET['file'].';');
   $sth->execute();
@@ -96,32 +121,37 @@ else if(isset($_GET['file']))
   $sth->execute();
   $data = array();
   $results = $sth->fetchAll();
-  foreach($results as $entry)
-  {
-    try
-    {
+  foreach ($results as $entry) {
+    try {
       $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
     }
-    catch(Exception $e)
-    {
+    catch(Exception $e) {
       $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
     }
   }
 
   /* iterate over array and assign all columns */
-  foreach($idxs as $idx)
-  {
+  foreach ($idxs as $idx) {
     echo $idx;
-    foreach($cols as $col)
-    {
+    foreach ($cols as $col) {
       echo "\t".$data[$idx][$col];
     }
     echo "\n";
   }
 }
+/* check the history of edits, if this option is chosen */
+else if (isset($_GET['history'])) {
+  $query = $con->query('select * from backup;');
+  $data = $query->fetchAll();
+  foreach ($data as $line) {
+    echo $line['FILE'] . "\t" . $line["ID"] . "\t" . $line["COL"] . "\t" .
+      $line["VAL"] . "\t" . $line["DATE"] . "\t" .$line["user"] . "\n";
+  }
+}
+
 else
 {
-  echo "nofile";
+  echo "no parameters specified by user " . $user;
 }
 ?>
 
