@@ -10,7 +10,7 @@
 ?>
 <?php 
 header('Content-Type: text/plain;charset=utf8');
-$now = date('Y.m.d, H:i.s');
+$now = date('Y-m-d H:i:s');
 if(isset($_SERVER['REMOTE_USER'])) {
   $user = $_SERVER['REMOTE_USER'];
 }
@@ -63,8 +63,17 @@ if(isset($_GET['tables'])) {
 
 else if(isset($_GET['file'])) {
   
+  /* we make some simple solution here: if columns are passed from the 
+   * get-line, we modify the query, if not, we represent the modification
+   * as an empty string */
+  if (!isset($_GET['columns'])) {
+    $where = '';
+  }
+  else {
+    $where = ' where like("%"||COL||"%", "' . $_GET['columns'] . '")';
+  }
   /* get all columns */
-  $sth = $con->prepare('select COL from '.$_GET['file'].';');
+  $sth = $con->prepare('select COL from ' . $_GET['file'] . $where. ';');
   $sth->execute();
   $cols = array_unique($sth->fetchAll(PDO::FETCH_COLUMN, 0));
   usort($cols, "sortMyCols");
@@ -75,9 +84,10 @@ else if(isset($_GET['file'])) {
     echo "\t".$col;
   }
   echo "\n#\n";
-  
+
+
   /* get all indices */
-  $sth = $con->prepare('select ID from '.$_GET['file'].';');
+  $sth = $con->prepare('select ID from ' . $_GET['file'] . $where . ';');
   $sth->execute();
   $idxs = array_unique($sth->fetchAll(PDO::FETCH_COLUMN, 0));
   
@@ -85,7 +95,7 @@ else if(isset($_GET['file'])) {
   $text = "";
   
   /* fetch all the data from sqlite */
-  $query = 'select * from '.$_GET['file'].';';
+  $query = 'select * from '.$_GET['file'] . $where . ';';
   $sth = $con->prepare($query);
   $sth->execute();
   $data = array();

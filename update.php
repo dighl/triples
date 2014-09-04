@@ -10,7 +10,7 @@
 ?>
 <?php 
 header('Content-Type: text/plain;charset=utf8');
-$now = date('Y.m.d, H:i.s');
+$now = date('Y-m-d H:i:s');
 if(isset($_SERVER['REMOTE_USER'])) {
   $user = $_SERVER['REMOTE_USER'];
 }
