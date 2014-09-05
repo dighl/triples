@@ -4,7 +4,7 @@
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
  * created  : 2014-08-31 22:09
- * modified : 2014-09-03 10:31
+ * modified : 2014-09-04 20:29
  *
  */
 ?>
@@ -54,27 +54,48 @@ function sortMyCols($valA,$valB) {
  */
 if(isset($_GET['update'])) {
   
-  /* get original datum */
-  $query = $con->query(
-    'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
-    $_GET['COL'].'";'
-  );
-  $val = $query->fetch();
-  
-  /* insert previous datum */
-  $con->exec(
-    'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
-    '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user .
-    '");'
-  );
-  
-  /* insert new datum */
-  $con->exec(
-    'update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'] . 
-    ' and COL like "'.$_GET['COL'].'";'
-  );
+  /* check if column exists first */
+  $query = $con->query('select DISTINCT COL from '.$_GET['file'] .';');
+  $cols = $query->fetchAll();
 
-  /* give simple feedback */
-  echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
-    $_GET['VAL'].'" on '.$now.'.';
+  if (in_array($_GET['COL'], $cols)) {
+    /* get original datum */
+    $query = $con->query(
+      'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
+      $_GET['COL'].'";'
+    );
+
+    $val = $query->fetch();
+    
+    /* insert previous datum */
+    $con->exec(
+      'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
+      '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user .
+      '");'
+    );
+    
+    /* insert new datum */
+    $con->exec(
+      'update '.$_GET['file'].' set VAL = "'.$_GET['VAL'].'" where ID = '.$_GET['ID'] . 
+      ' and COL like "'.$_GET['COL'].'";'
+    );
+
+    /* give simple feedback */
+    echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
+      $_GET['VAL'].'" on '.$now.'.';
+  }
+  else {
+
+    /* create new value */
+    $con->exec(
+      'insert into '.$_GET['file'].' values(' . 
+      $_GET['ID'] . ',"' . 
+      $_GET['COL'].'","' . 
+      $_GET['VAL'].'");'
+    );
+
+    /* return check signal */
+    echo 'Successfully inserted new values in new column on ' . $now.'.';
+  }
+
 }

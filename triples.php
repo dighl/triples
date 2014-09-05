@@ -4,12 +4,15 @@
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
  * created  : 2014-08-31 22:09
- * modified : 2014-09-03 10:31
+ * modified : 2014-09-04 11:38
  *
  */
 ?>
-<?php 
-header('Content-Type: text/plain;charset=utf8');
+<?php
+header('HTTP/1.1 200 OK');
+header('Content-Type: text/plain; charset=utf-8');
+header('Content-Disposition: attachment; filename="triples.tsv"');
+//header('Content-Type: text/plain;charset=utf8');
 $now = date('Y-m-d H:i:s');
 if(isset($_SERVER['REMOTE_USER'])) {
   $user = $_SERVER['REMOTE_USER'];
@@ -73,9 +76,9 @@ else if(isset($_GET['file'])) {
     $where = ' where like("%"||COL||"%", "' . $_GET['columns'] . '")';
   }
   /* get all columns */
-  $sth = $con->prepare('select COL from ' . $_GET['file'] . $where. ';');
+  $sth = $con->prepare('select DISTINCT COL from ' . $_GET['file'] . $where. ';');
   $sth->execute();
-  $cols = array_unique($sth->fetchAll(PDO::FETCH_COLUMN, 0));
+  $cols = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
   usort($cols, "sortMyCols");
 
   echo "ID";
@@ -87,9 +90,9 @@ else if(isset($_GET['file'])) {
 
 
   /* get all indices */
-  $sth = $con->prepare('select ID from ' . $_GET['file'] . $where . ';');
+  $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . $where . ';');
   $sth->execute();
-  $idxs = array_unique($sth->fetchAll(PDO::FETCH_COLUMN, 0));
+  $idxs = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
   
   /* create text */
   $text = "";
@@ -113,7 +116,12 @@ else if(isset($_GET['file'])) {
   foreach ($idxs as $idx) {
     echo $idx;
     foreach ($cols as $col) {
-      echo "\t".$data[$idx][$col];
+      if (isset($data[$idx][$col])) {
+        echo "\t" . $data[$idx][$col];
+      }
+      else {
+        echo "\t";
+      }
     }
     echo "\n";
   }
