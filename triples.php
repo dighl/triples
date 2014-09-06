@@ -4,7 +4,7 @@
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
  * created  : 2014-08-31 22:09
- * modified : 2014-09-04 11:38
+ * modified : 2014-09-05 20:44
  *
  */
 ?>
@@ -12,7 +12,6 @@
 header('HTTP/1.1 200 OK');
 header('Content-Type: text/plain; charset=utf-8');
 header('Content-Disposition: attachment; filename="triples.tsv"');
-//header('Content-Type: text/plain;charset=utf8');
 $now = date('Y-m-d H:i:s');
 if(isset($_SERVER['REMOTE_USER'])) {
   $user = $_SERVER['REMOTE_USER'];
@@ -22,7 +21,6 @@ else {
 }
 $dsn = "sqlite:triples.sqlite3";
 $con = new PDO ($dsn);
-
 /* this is our sorter function that handles the order of
  * columns in the data 
  */
@@ -51,7 +49,6 @@ function sortMyCols($valA,$valB) {
   if($valB < $valA) {return 1; }
   if($valA == $valB) {return 0; }
 }
-
 /* if site is called with keyword "tables", return all tables, each in 
  * one line 
  */
@@ -63,7 +60,19 @@ if(isset($_GET['tables'])) {
     echo $table."\n";
   }
 }
-
+/* return most recent edits, if this is chosen */
+else if (isset($_GET['date'])) {
+  $query = $con->query('select ID,COL from backup where FILE="' .
+    $_GET['file'] . '" and datetime(DATE) > datetime("' . $_GET['date'] .
+    '") group by ID,COL;');
+  $data = $query->fetchAll();
+  foreach ($data as $line) {
+    $query = $con->query('select VAL from ' . $_GET['file'] . ' where ID=' .
+      $line['ID'] . ' and COL like "' . $line['COL'] .'";');
+    $tmp = $query->fetch();
+    echo $line['ID'] . "\t" . $line["COL"] . "\t" . $tmp["VAL"] . "\n";
+  }
+}
 else if(isset($_GET['file'])) {
   
   /* we make some simple solution here: if columns are passed from the 
@@ -135,11 +144,8 @@ else if (isset($_GET['history'])) {
       $line["VAL"] . "\t" . $line["DATE"] . "\t" .$line["user"] . "\n";
   }
 }
-
 else
 {
   echo "no parameters specified by user " . $user;
 }
 ?>
-
-

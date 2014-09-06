@@ -20,35 +20,6 @@ else {
 $dsn = "sqlite:triples.sqlite3";
 $con = new PDO ($dsn);
 
-/* this is our sorter function that handles the order of
- * columns in the data 
- */
-function sortMyCols($valA,$valB) {
-  $sorter = array(
-    "DOCULECT" => 1,
-    "CONCEPT" => 2,
-    "IPA" => 3,
-    "TOKENS" => 4,
-    "CLUSTERID" => 5,
-    "ALIGNMENT" => 6
-  );
-  if(array_key_exists($valA, $sorter)) {
-    $valA = $sorter[$valA];
-  }
-  else {
-    $valA = 10;
-  }
-  if(array_key_exists($valB, $sorter)) {
-    $valB = $sorter[$valB];
-  }
-  else {
-    $valB = 10;
-  }
-  if($valA < $valB) {return -1; }
-  if($valB < $valA) {return 1; }
-  if($valA == $valB) {return 0; }
-}
-
 /* if site is called with keyword "tables", return all tables, each in 
  * one line 
  */
@@ -56,9 +27,9 @@ if(isset($_GET['update'])) {
   
   /* check if column exists first */
   $query = $con->query('select DISTINCT COL from '.$_GET['file'] .';');
-  $cols = $query->fetchAll();
+  $cols = $query->fetchAll(PDO::FETCH_COLUMN, 0);
 
-  if (in_array($_GET['COL'], $cols)) {
+  if (in_array($_GET['COL'],$cols)) {
     /* get original datum */
     $query = $con->query(
       'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
@@ -70,7 +41,7 @@ if(isset($_GET['update'])) {
     /* insert previous datum */
     $con->exec(
       'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
-      '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'","'.$now.'","'.$user .
+      '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$val['VAL'].'",strftime("%s","now"),"'.$user .
       '");'
     );
     
@@ -85,6 +56,13 @@ if(isset($_GET['update'])) {
       $_GET['VAL'].'" on '.$now.'.';
   }
   else {
+    /* we store innovations also in our backup file, but we need to make sure 
+     * that upon updating the respective column actually exists */
+    $con->exec(
+      'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
+      '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$_GET['VAL'].'",strftime("%s","now"),"'.$user .
+      '");'
+    );
 
     /* create new value */
     $con->exec(
