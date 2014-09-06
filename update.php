@@ -25,16 +25,21 @@ $con = new PDO ($dsn);
  */
 if(isset($_GET['update'])) {
   
-  /* check if column exists first */
-  $query = $con->query('select DISTINCT COL from '.$_GET['file'] .';');
-  $cols = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  ///* check if column exists first */
+  //$query = $con->query('select DISTINCT COL from '.$_GET['file'] .';');
+  //$cols = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  //
+  ///* if column exists, we assume at first that we can deal with this value */
+  //if (in_array($_GET['COL'],$cols)) {
+    
+  /* get original datum */
+  $query = $con->query(
+    'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
+    $_GET['COL'].'";'
+  );
 
-  if (in_array($_GET['COL'],$cols)) {
-    /* get original datum */
-    $query = $con->query(
-      'select VAL from '.$_GET['file'].' where ID = '.$_GET['ID'].' and COL like "' . 
-      $_GET['COL'].'";'
-    );
+  /* check if datum exists */
+  if ($query instanceof Sqlite3Result) {
 
     $val = $query->fetch();
     
@@ -60,7 +65,7 @@ if(isset($_GET['update'])) {
      * that upon updating the respective column actually exists */
     $con->exec(
       'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
-      '",'.$_GET['ID'].',"'.$_GET['COL'].'","'.$_GET['VAL'].'",strftime("%s","now"),"'.$user .
+      '",'.$_GET['ID'].',"'.$_GET['COL'].'","*NEW*",strftime("%s","now"),"'.$user .
       '");'
     );
 
