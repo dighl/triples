@@ -24,13 +24,6 @@ $con = new PDO ($dsn);
  * one line 
  */
 if(isset($_GET['update'])) {
-  
-  ///* check if column exists first */
-  //$query = $con->query('select DISTINCT COL from '.$_GET['file'] .';');
-  //$cols = $query->fetchAll(PDO::FETCH_COLUMN, 0);
-  //
-  ///* if column exists, we assume at first that we can deal with this value */
-  //if (in_array($_GET['COL'],$cols)) {
     
   /* get original datum */
   $query = $con->query(
@@ -39,7 +32,7 @@ if(isset($_GET['update'])) {
   );
 
   /* check if datum exists */
-  if ($query instanceof Sqlite3Result) {
+  if ($query) {
 
     $val = $query->fetch();
     
@@ -57,17 +50,17 @@ if(isset($_GET['update'])) {
     );
 
     /* give simple feedback */
-    echo 'Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
+    echo 'UPDATE: Modification successfully carried out, replaced "'.$val['VAL'].'" with "' . 
       $_GET['VAL'].'" on '.$now.'.';
   }
   else {
     /* we store innovations also in our backup file, but we need to make sure 
      * that upon updating the respective column actually exists */
-    $con->exec(
-      'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
-      '",'.$_GET['ID'].',"'.$_GET['COL'].'","*NEW*",strftime("%s","now"),"'.$user .
-      '");'
-    );
+    //$con->exec(
+    //  'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
+    //  '",'.$_GET['ID'].',"'.$_GET['COL'].'","*NEW*",strftime("%s","now"),"'.$user .
+    //  '");'
+    //);
 
     /* create new value */
     $con->exec(
@@ -78,7 +71,22 @@ if(isset($_GET['update'])) {
     );
 
     /* return check signal */
-    echo 'Successfully inserted new values in new column on ' . $now.'.';
+    echo 'INSERTION: Successfully inserted new values in new column on ' . $now.'.';
   }
 
+}
+else if (isset($_POST['column'])) {
+  /* get all ids first */
+  $query = $con->query('select DISTINCT ID from '.$_POST['file'].';');
+  $idxs = $query->fetchAll(PDO::FETCH_COLUMN, 0);
+  foreach ($idxs as $idx) {
+    if (isset($_POST[$idx])) {
+      $con->exec('insert into '.$_POST['file'].' values(' . 
+        $idx . ',"' . 
+        $_POST['column'].'","' . 
+        $_POST[$idx].'");'
+      );
+    }
+  }
+  echo 'COLUMN was successfully inserted on '. $now. '.';
 }
