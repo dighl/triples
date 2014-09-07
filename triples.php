@@ -4,7 +4,7 @@
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
  * created  : 2014-08-31 22:09
- * modified : 2014-09-05 20:44
+ * modified : 2014-09-07 17:33
  *
  */
 ?>
@@ -96,28 +96,55 @@ else if(isset($_GET['file'])) {
     echo "\t".$col;
   }
   echo "\n#\n";
-
-
+  
   /* get all indices */
   $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . $where . ';');
   $sth->execute();
   $idxs = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
-  
+
   /* create text */
   $text = "";
-  
-  /* fetch all the data from sqlite */
-  $query = 'select * from '.$_GET['file'] . $where . ';';
-  $sth = $con->prepare($query);
-  $sth->execute();
+
+  /* $data stores the data in json-like form */
   $data = array();
-  $results = $sth->fetchAll();
-  foreach ($results as $entry) {
-    try {
-      $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
+
+  /* start breaking stuff up if size is too large */
+  if (sizeof($idxs) > 10000) {
+    if ($where != '') {
+      $where = $where . ' and ';
     }
-    catch(Exception $e) {
-      $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
+    else {
+      $where = ' where ';
+    }
+
+    foreach ($cols as $col) {
+      $query = $con->query('select * from '. $_GET['file'] . $where . 'COL = "' . 
+        $col . '";');
+      $results = $query->fetchAll();
+      foreach ($results as $entry) {
+        try {
+          $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
+        }
+        catch (Exception $e) {
+          $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
+        }
+      }
+    }
+  }
+  else {
+
+    /* fetch all the data from sqlite */
+    $query = 'select * from '.$_GET['file'] . $where . ';';
+    $sth = $con->prepare($query);
+    $sth->execute();
+    $results = $sth->fetchAll();
+    foreach ($results as $entry) {
+      try {
+        $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
+      }
+      catch(Exception $e) {
+        $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
+      }
     }
   }
 
