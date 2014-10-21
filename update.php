@@ -37,9 +37,10 @@ if(isset($_GET['update'])) {
     );
 
     /* check if datum exists */
-    if ($query) {
+    //if ($query) {
 
-      $val = $query->fetch();
+    $val = $query->fetch();
+    if($val != ''){
       
       /* insert previous datum */
       $con->exec(
