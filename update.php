@@ -4,7 +4,7 @@
  * author   : Johann-Mattis List
  * email    : mattis.list@lingulist.de
  * created  : 2014-08-31 22:09
- * modified : 2014-09-04 20:29
+ * modified : 2015-01-14 06:17
  *
  */
 ?>
@@ -96,5 +96,30 @@ else if (isset($_POST['column'])) {
   }
   else {
     echo "Error in modification attempt.";
+  }
+}
+/* delete all entries for a given id from the database if this option is submitted by
+ * providing the keyword "delete" in the get-line */
+else if (isset($_GET['delete'])) {
+  
+  include('rechte.php');
+  
+  if (in_array($_GET['file'], $rights[$user])) {
+    /* get all values of the id first */
+    $query = $con->query('select * from '.$_GET['file'].' where ID = '.$_GET['ID'].'.;');
+    $items = $query->fetchAll();
+    foreach($items as $item) {
+      /* insert previous datum */
+      $con->exec(
+        'insert into backup(FILE,ID,COL,VAL,DATE,USER) values("'.$_GET['file'] .
+        '",'.$_GET['ID'].',"'.$item['COL'].'","'.$item['VAL'].'",strftime("%s","now"),"'.$user .
+        '");'
+      );
+    }
+    $con->query('delete from '.$_GET['file'].' where ID = '.$_GET['ID'].';');
+    echo 'Successfully deleted the required entries from the database.';
+  }
+  else {
+    echo 'ERROR: Current user does not have the permission to modify the data. ';
   }
 }

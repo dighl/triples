@@ -73,6 +73,27 @@ else if (isset($_GET['date'])) {
     echo $line['ID'] . "\t" . $line["COL"] . "\t" . $tmp["VAL"] . "\n";
   }
 }
+else if (isset($_GET['new_id'])) {
+  /* get all indices */
+  $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . ';');
+  $sth->execute();
+  $idxA = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+  
+  /* do the same for backup file */
+  $sth = $con->prepare('select DISTINCT ID from backup where file == "'. $_GET['file']. '";');
+  $sth->execute();
+  $idxB = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+
+  $maxA = max($idxA);
+  $maxB = max($idxB);
+  if ($maxA >= $maxB) {
+    echo $maxA + 1;
+  }
+  else {
+    echo $maxB + 1;
+  }
+}
+
 else if(isset($_GET['file'])) {
   
   /* we make some simple solution here: if columns are passed from the 
