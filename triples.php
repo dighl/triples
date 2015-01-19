@@ -19,7 +19,13 @@ if(isset($_SERVER['REMOTE_USER'])) {
 else {
   $user = 'unknown'; 
 }
-$dsn = "sqlite:triples.sqlite3";
+
+if (isset($_GET['remote_dbase'])) {
+  $dsn = "sqlite:".$_GET['remote_dbase'];
+}
+else {
+  $dsn = "sqlite:triples.sqlite3";
+}
 $con = new PDO ($dsn);
 /* this is our sorter function that handles the order of
  * columns in the data 
@@ -105,6 +111,34 @@ else if(isset($_GET['file'])) {
   else {
     $where = ' where like("%"||COL||"%", "' . $_GET['columns'] . '")';
   }
+
+  /* set up array for ids we want to have included */
+  $sth = $con->prepare('select DISTINCT ID from '.$_GET['file'].';');
+  $sth->execute();
+  $aids = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+  $array_count = count($aids);
+  $dids = $aids;
+  $cids = $aids;
+  $idxs = array();
+
+  /* if doculects are passed, we need to make a pre-selection of possible ids */
+  if (isset($_GET['doculects'])) {
+    $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] .
+      ' where like("%"||VAL||"%", "' . $_GET['doculects'] . '");');
+    $sth->execute();
+    $dids = $sth->fetchAll(PDO::FETCH_COLUMN,0);
+  }
+
+  /* if concepts are passed, we need to further sort by concept selection */
+  if (isset($_GET['concepts'])) {
+    $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] .
+      ' where like("%"||VAL||"%", "' . $_GET['concepts'] . '");');
+    $sth->execute();
+    $cids = $sth->fetchAll(PDO::FETCH_COLUMN,0);
+  }
+
+  $idxs = array_intersect($dids, $cids);
+  
   /* get all columns */
   $sth = $con->prepare('select DISTINCT COL from ' . $_GET['file'] . $where. ';');
   $sth->execute();
@@ -117,11 +151,6 @@ else if(isset($_GET['file'])) {
     echo "\t".$col;
   }
   echo "\n#\n";
-  
-  /* get all indices */
-  $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . $where . ';');
-  $sth->execute();
-  $idxs = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
 
   /* create text */
   $text = "";
@@ -130,7 +159,7 @@ else if(isset($_GET['file'])) {
   $data = array();
 
   /* start breaking stuff up if size is too large */
-  if (sizeof($idxs) > 10000) {
+  //if ($array_count > 1000) {
     if ($where != '') {
       $where = $where . ' and ';
     }
@@ -139,8 +168,9 @@ else if(isset($_GET['file'])) {
     }
 
     foreach ($cols as $col) {
+
       $query = $con->query('select * from '. $_GET['file'] . $where . 'COL = "' . 
-        $col . '";');
+        $col . '" and VAL != "-";');
       $results = $query->fetchAll();
       foreach ($results as $entry) {
         try {
@@ -151,23 +181,23 @@ else if(isset($_GET['file'])) {
         }
       }
     }
-  }
-  else {
+  
+  //else {
 
-    /* fetch all the data from sqlite */
-    $query = 'select * from '.$_GET['file'] . $where . ';';
-    $sth = $con->prepare($query);
-    $sth->execute();
-    $results = $sth->fetchAll();
-    foreach ($results as $entry) {
-      try {
-        $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
-      }
-      catch(Exception $e) {
-        $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
-      }
-    }
-  }
+  //  /* fetch all the data from sqlite */
+  //  $query = 'select * from '.$_GET['file'] . $where . ';';
+  //  $sth = $con->prepare($query);
+  //  $sth->execute();
+  //  $results = $sth->fetchAll();
+  //  foreach ($results as $entry) {
+  //    try {
+  //      $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
+  //    }
+  //    catch(Exception $e) {
+  //      $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
+  //    }
+  //  }
+  //}
 
   /* iterate over array and assign all columns */
   foreach ($idxs as $idx) {
