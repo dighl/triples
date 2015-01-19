@@ -18,7 +18,12 @@ else {
   $user = 'unknown'; 
 }
 
-$dsn = "sqlite:triples.sqlite3";
+if (isset($_GET['remote_dbase'])) {
+  $dsn = "sqlite:".$_GET['remote_dbase'];
+}
+else {
+  $dsn = "sqlite:triples.sqlite3";
+}  
 $con = new PDO ($dsn);
 
 /* if site is called with keyword "tables", return all tables, each in 
