@@ -81,23 +81,38 @@ else if (isset($_GET['date'])) {
 }
 else if (isset($_GET['new_id'])) {
   /* get all indices */
-  $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . ';');
-  $sth->execute();
-  $idxA = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+  /* start with the case that an explicit ID is chosen */
+  if ($_GET['new_id'] == '') {
+    $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] . ';');
+    $sth->execute();
+    $idxA = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
   
-  /* do the same for backup file */
-  $sth = $con->prepare('select DISTINCT ID from backup where file == "'. $_GET['file']. '";');
-  $sth->execute();
-  $idxB = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+    /* do the same for backup file */
+    $sth = $con->prepare('select DISTINCT ID from backup where file == "'. $_GET['file']. '";');
+    $sth->execute();
+    $idxB = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
 
-  $maxA = max($idxA);
-  $maxB = max($idxB);
-  if ($maxA >= $maxB) {
-    echo $maxA + 1;
+    $maxA = max($idxA);
+    $maxB = max($idxB);
+    if ($maxA >= $maxB) {
+      echo $maxA + 1;
+    }
+    else {
+      echo $maxB + 1;
+    }
   }
+  /* yet another possibility is that the new id is supposed to be a cognate id or the like */
   else {
-    echo $maxB + 1;
-  }
+    $sth = $con->prepare('select DISTINCT VAL from '.$_GET['file'] .' where COL == "'.$_GET['new_id'].'" order by COL;');
+    $sth->execute();
+    $idxs = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+    for ($i=0;$i<=count($idxs)+1;$i++) {
+      if (!in_array($i, $idxs)) {
+	echo $i;
+	break;
+      }
+    }
+  } 
 }
 
 else if(isset($_GET['file'])) {
@@ -109,7 +124,9 @@ else if(isset($_GET['file'])) {
     $where = '';
   }
   else {
-    $where = ' where like("%"||COL||"%", "' . $_GET['columns'] . '")';
+    $cols = explode(",",$_GET['columns']);
+    $col_string = '("'.implode('","',$cols).'")';
+    $where = ' where COL in '.$col_string;
   }
 
   /* set up array for ids we want to have included */
@@ -121,18 +138,27 @@ else if(isset($_GET['file'])) {
   $cids = $aids;
   $idxs = array();
 
+
+  /* similarly, we do the same for doculects and concepts, but we do not
+   * combine the queries but rather use them distinctely to narrow down
+   * the number of possible ids to be sent off */
+  
   /* if doculects are passed, we need to make a pre-selection of possible ids */
   if (isset($_GET['doculects'])) {
+    $doc_string = '("'.implode('","',explode(',',$_GET['doculects'])).'")';
+
     $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] .
-      ' where like("%"||VAL||"%", "' . $_GET['doculects'] . '");');
+      ' where VAL in '.$doc_string. ';');
     $sth->execute();
     $dids = $sth->fetchAll(PDO::FETCH_COLUMN,0);
   }
 
   /* if concepts are passed, we need to further sort by concept selection */
   if (isset($_GET['concepts'])) {
+    $con_string = '("'.implode('","',explode(',',$_GET['concepts'])).'")';
+
     $sth = $con->prepare('select DISTINCT ID from ' . $_GET['file'] .
-      ' where like("%"||VAL||"%", "' . $_GET['concepts'] . '");');
+      ' where VAL in '.$con_string.';');
     $sth->execute();
     $cids = $sth->fetchAll(PDO::FETCH_COLUMN,0);
   }
@@ -158,46 +184,17 @@ else if(isset($_GET['file'])) {
   /* $data stores the data in json-like form */
   $data = array();
 
-  /* start breaking stuff up if size is too large */
-  //if ($array_count > 1000) {
-    if ($where != '') {
-      $where = $where . ' and ';
+  $qstring = 'select * from '.$_GET['file'].$where.' and VAL!="-" and VAL!="" and ID in ('.implode(",",$idxs).');';
+  $query = $con->query($qstring);
+  $results = $query->fetchAll();
+  foreach ($results as $entry) {
+    try {
+      $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
     }
-    else {
-      $where = ' where ';
+    catch (Exception $e) {
+      $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
     }
-
-    foreach ($cols as $col) {
-
-      $query = $con->query('select * from '. $_GET['file'] . $where . 'COL = "' . 
-        $col . '" and VAL != "-";');
-      $results = $query->fetchAll();
-      foreach ($results as $entry) {
-        try {
-          $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
-        }
-        catch (Exception $e) {
-          $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
-        }
-      }
-    }
-  
-  //else {
-
-  //  /* fetch all the data from sqlite */
-  //  $query = 'select * from '.$_GET['file'] . $where . ';';
-  //  $sth = $con->prepare($query);
-  //  $sth->execute();
-  //  $results = $sth->fetchAll();
-  //  foreach ($results as $entry) {
-  //    try {
-  //      $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
-  //    }
-  //    catch(Exception $e) {
-  //      $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
-  //    }
-  //  }
-  //}
+  }
 
   /* iterate over array and assign all columns */
   foreach ($idxs as $idx) {
