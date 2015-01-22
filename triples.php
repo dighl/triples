@@ -162,14 +162,21 @@ else if(isset($_GET['file'])) {
     $sth->execute();
     $cids = $sth->fetchAll(PDO::FETCH_COLUMN,0);
   }
-
-  $idxs = array_intersect($dids, $cids);
+  
+  if (isset($_GET['concepts']) || isset($_GET['doculects'])) {	
+		$idxs = array_intersect($dids, $cids);
+	}
+	else {
+	  $idxs = $aids;
+	}
   
   /* get all columns */
-  $sth = $con->prepare('select DISTINCT COL from ' . $_GET['file'] . $where. ';');
-  $sth->execute();
-  $cols = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
-  usort($cols, "sortMyCols");
+	if (!isset($cols)) { 
+		$sth = $con->prepare('select DISTINCT COL from ' . $_GET['file'] . $where. ';');
+		$sth->execute();
+		$cols = $sth->fetchAll(PDO::FETCH_COLUMN, 0);
+		usort($cols, "sortMyCols");
+	}
 
   echo "ID";
   foreach($cols as $col)
@@ -184,17 +191,38 @@ else if(isset($_GET['file'])) {
   /* $data stores the data in json-like form */
   $data = array();
 
-  $qstring = 'select * from '.$_GET['file'].$where.' and VAL!="-" and VAL!="" and ID in ('.implode(",",$idxs).');';
-  $query = $con->query($qstring);
-  $results = $query->fetchAll();
-  foreach ($results as $entry) {
-    try {
-      $data[$entry['ID']][$entry['COL']] = $entry['VAL'];
-    }
-    catch (Exception $e) {
-      $data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
-    }
-  }
+	/* bad solution, but if neither doculects or the other stuff is selected,
+	 * it is usefult to just ignore the ID-selection restriction */
+	if (!$idxs) {
+	  $condition = '';
+	}
+	else {
+		$condition = ' and ID in ('.implode(",",$idxs).')';
+	}
+	
+	//if ($where != '') {
+	//  $where = $where . ' and VAL not in ("-","")';
+	//}
+	//else {
+	//  $where = ' where VAL not in ("-","")';
+	//}
+  
+	foreach ($cols as $col) {
+	  
+		$qstring = 'select * from '.$_GET['file'].' where COL="'.$col.'" and VAL not in ("-","")'.$condition.';';
+
+		$query = $con->query($qstring);
+		$query->execute();
+		$results = $query->fetchAll();
+		foreach ($results as $entry) {
+			try {
+				$data[$entry['ID']][$entry['COL']] = $entry['VAL'];
+			}
+			catch (Exception $e) {
+				$data[$entry['ID']] = array($entry['COL'] => $entry['VAL']);
+			}
+		}
+	}
 
   /* iterate over array and assign all columns */
   foreach ($idxs as $idx) {
