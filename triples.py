@@ -12,6 +12,28 @@ args = {}
 for arg in tmp_args:
     args[arg] = tmp_args[arg].value
 
+def get_max_id(args, cursor):
+
+   cursor.execute('select DISTINCT ID from '+args['file']+';')
+   linesA = [x[0] for x in cursor.fetchall()]
+   cursor.execute(
+       'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
+       )
+   linesB = [x[0] for x in cursor.fetchall()]
+   try:
+       maxA = max(linesA)
+   except ValueError:
+       maxA = 0
+   try:
+       maxB = max(linesB)
+   except ValueError:
+       maxB = 0
+       
+   if maxA >= maxB:
+       return maxA + 1
+   else:
+       return maxB + 1
+
 # check for dbase arg and switch the database in case an argument is provided
 if 'remote_dbase' in args:
     dbpath = args['remote_dbase']+'.sqlite3' if not \
@@ -57,19 +79,32 @@ elif 'new_id' in args:
             'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
             )
         linesB = [x[0] for x in cursor.fetchall()]
-        maxA = max(linesA)
-        maxB = max(linesB)
+        try:
+            maxA = max(linesA)
+        except ValueError:
+            maxA = 0
+        try:
+            maxB = max(linesB)
+        except ValueError:
+            maxB = 0
+            
         if maxA >= maxB:
             print str(maxA + 1)
         else:
             print str(maxB + 1)
     else:
-        lines = [int(x[0]) for x in cursor.execute('select DISTINCT VAL from '+args['file']+\
+        lines = [x[0] for x in cursor.execute('select DISTINCT VAL from '+args['file']+\
                 ' where COL="'+args['new_id']+'";')]
-        
-        print str(max(lines)+1)
+        # dammit but, it doesn't really seem to work without explicit
+        # type-checking
+        cogids = []
+        for l in lines:
+            try: cogids += [int(l)]
+            except: pass
 
-elif 'file' in args:
+        print str(max(cogids)+1)
+
+elif 'file' in args and not 'unique' in args:
     print 'Content-Disposition: attachment; filename="triples.tsv"'
     print
     
@@ -114,6 +149,18 @@ elif 'file' in args:
                 D[a][b] = c.encode('utf-8')
             except KeyError:
                 D[a] = {b:c.encode('utf-8')}
+
+    # check for concepts and "template"
+    if 'concepts' in args and "template" in args and 'doculects' in args:
+        maxidx = get_max_id(args, cursor)
+        for doculect in args['doculects'].split('|'):
+            conceptsIs = [D[idx]['CONCEPT'] for idx in D if D[idx]['DOCULECT'] == doculect]
+            conceptsMiss = [c for c in args['concepts'].split('|') if c not in conceptsIs]
+            for concept in conceptsMiss:
+                D[maxidx] = {"CONCEPT":concept, "DOCULECT":doculect, "IPA": '?'}
+                idxs += [maxidx]
+                maxidx += 1
+
     # make object
     for idx in idxs:
         txt = str(idx)
@@ -178,3 +225,25 @@ elif 'history' in args:
                 str(line[4]),
                 line[5])
 
+# if we are requested to submit unique values, we output one value (like
+# concepts and the like) and only take the distinct values from the DB)
+elif 'unique' in args:
+    
+    if not 'content' in args:
+        args['content'] = 'tsv'
+
+    if args['content'] == 'tsv':
+        print 'Content-Disposition: attachment; filename="triples.tsv"'
+        print
+    else:
+        print
+
+    # set backup as default if nothing is passed
+    if not 'file' in args:
+        args['file'] = 'backup'
+
+    query = 'select distinct val from '+args['file']+' where col = "'+args['unique']+'" order by val;'
+     
+    print 'NUMBER\t'+args['unique'];
+    for i,line in enumerate(cursor.execute(query)):
+        print str(i+1)+'\t'+''.join(line).encode('utf-8')
