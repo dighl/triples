@@ -118,5 +118,7 @@ elif 'delete' in args:
             now)
 
     db.commit()
+else:
+    print "nothing specified by user {0}".format(user)
 
 db.close()
