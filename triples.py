@@ -52,6 +52,56 @@ if 'tables' in args:
     for line in cursor.execute(
     'select name from sqlite_master where name != "backup";'):
         print line[0]
+
+elif 'summary' in args and 'file' in args:
+    taxa = [line[0] for line in cursor.execute(
+            'select distinct VAL from '+args['file']+' where COL="DOCULECT";'
+            )]
+    concepts = [line[0] for line in cursor.execute(
+        'select distinct VAL from '+args['file'] + ' where COL="CONCEPT";'
+        )]
+
+    columns = [line[0] for line in cursor.execute(
+        'select distinct COL from '+args['file']+';')]
+
+    tstring = ''
+    for t in sorted(taxa):
+        tstring += '<option value="'+t+'">'+t+'</option>'
+    cstrings = []
+    for t in sorted(concepts):
+        cstrings += ['<option value="'+t+'">'+t+'</option>']
+    colstring = ''
+    for t in sorted(columns):
+        colstring += '<option value="'+t+'">'+t+'</option>'
+    
+    from template import html1,html2,script
+
+    #print len(cstrings) 
+    out1 = html1.format(
+        DOCULECTS = tstring
+        )
+    out2 = html2.format(
+        COLUMNS = colstring,
+        SCRIPT = script,
+        DBASE = args['file']
+        )
+
+    out = out1 + '\n'.join(cstrings) + out2
+
+    print 'Content-Type: text/html'
+    print
+    print out1
+    for i,t in enumerate(sorted(concepts)):
+        print '<option value="'+t.encode('utf-8')+'">' +t.encode('utf-8')+'</option>'
+        print 
+    print out2
+
+    #print out1 
+    #print out2
+    #for c in cstrings:
+    #    print c
+    #print out2
+
 # return most recent edits in the data
 elif 'date' in args:
     print
