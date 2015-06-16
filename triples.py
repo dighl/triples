@@ -199,12 +199,13 @@ elif 'file' in args and not 'unique' in args:
                 D[a][b] = c.encode('utf-8')
             except KeyError:
                 D[a] = {b:c.encode('utf-8')}
-
+    
     # check for concepts and "template"
     if 'concepts' in args and "template" in args and 'doculects' in args:
         maxidx = get_max_id(args, cursor)
         for doculect in args['doculects'].split('|'):
-            conceptsIs = [D[idx]['CONCEPT'] for idx in D if D[idx]['DOCULECT'] == doculect]
+            
+            conceptsIs = [D[idx]['CONCEPT'] for idx in D if 'CONCEPT' in D[idx] and 'DOCULECT' in D[idx] and D[idx]['DOCULECT'] == doculect]
             conceptsMiss = [c for c in args['concepts'].split('|') if c not in conceptsIs]
             for concept in conceptsMiss:
                 D[maxidx] = {"CONCEPT":concept, "DOCULECT":doculect, "IPA": '?'}
@@ -214,6 +215,7 @@ elif 'file' in args and not 'unique' in args:
     # make object
     for idx in idxs:
         txt = str(idx)
+        print(txt)
         for col in cols:
             try:
                 txt += '\t'+D[idx][col]
