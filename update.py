@@ -64,18 +64,23 @@ if 'update' in args:
 
     # start iteration
     for idx,col,val in zip(idxs,cols,vals):
+        # check for quote characters
+        if '"' in val:
+            val = val.replace('"','""')
+
         # get original data value
         try:
             orig_val = [x for x in cursor.execute(
                 'select VAL from ' + args['file'] + ' where ID=' +\
-                        idx + ' and COL like "'+col+'";')][0][0].encode('utf-8')
+                        idx + ' and COL like "'+col+'";')][0][0]
             
             qstring = 'update '+args['file'] + ' set VAL="'+val+'" where ID='+idx+' and COL="'+col+'";'
             cursor.execute(
                     qstring
                     )
-            print 'UPDATE: Modification successful replace "{0}" with "{1}" on {2}.'.format(
-                    orig_val,
+
+            message = 'UPDATE: Modification successful replace "{0}" with "{1}" on {2}.'.format(
+                    orig_val.encode('utf-8'),
                     val,
                     now)
                     
@@ -87,11 +92,16 @@ if 'update' in args:
                     'insert into '+args['file'] + ' values(' +\
                             idx + ',"' + col + '","' +\
                             val + '");')
-            print 'INSERTION: Successfully inserted {0} on {1}'.format(
+            message = 'INSERTION: Successfully inserted {0} on {1}'.format(
                     val, now)
+            
+        # modify original value with double quotes for safety
+        if '"' in orig_val:
+            orig_val = orig_val.replace('"','""')
 
         # insert the backup line
-        cursor.execute(
+        try:
+            cursor.execute(
                 'insert into backup values(?,?,?,?,strftime("%s","now"),?);',
                 (
                     args['file'],
@@ -100,8 +110,13 @@ if 'update' in args:
                     orig_val,
                     user
                     ))
+        except Exception as e:
+            print e
+            message = 'ERROR'
 
     db.commit()
+    print message
+
 
 elif 'delete' in args:
     lines = [line for line in cursor.execute(
@@ -113,11 +128,11 @@ elif 'delete' in args:
                 (args['file'],idx, col, val, user))
         cursor.execute(
                 'delete from '+args['file'] + ' where ID='+args['ID']+';')
+    db.commit()
     print 'DELETION: Successfully deleted all entries for ID {0} on {1}.'.format(
             args['ID'],
             now)
 
-    db.commit()
 else:
     print "nothing specified by user {0}".format(user)
 
