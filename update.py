@@ -2,6 +2,7 @@
 import cgi
 import os
 import sqlite3
+import urllib
 import json
 from rechte import rights
 import datetime
@@ -64,6 +65,10 @@ if 'update' in args:
 
     # start iteration
     for idx,col,val in zip(idxs,cols,vals):
+        
+        # unquote the value
+        val = urllib.unquote(val)
+
         # check for quote characters
         if '"' in val:
             val = val.replace('"','""')

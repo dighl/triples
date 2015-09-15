@@ -96,12 +96,6 @@ elif 'summary' in args and 'file' in args:
         print 
     print out2
 
-    #print out1 
-    #print out2
-    #for c in cstrings:
-    #    print c
-    #print out2
-
 # return most recent edits in the data
 elif 'date' in args:
     print
@@ -199,7 +193,7 @@ elif 'file' in args and not 'unique' in args:
                 D[a][b] = c.encode('utf-8')
             except KeyError:
                 D[a] = {b:c.encode('utf-8')}
-    
+
     # check for concepts and "template"
     if 'concepts' in args and "template" in args and 'doculects' in args:
         maxidx = get_max_id(args, cursor)
@@ -211,11 +205,12 @@ elif 'file' in args and not 'unique' in args:
                 D[maxidx] = {"CONCEPT":concept, "DOCULECT":doculect, "IPA": '?'}
                 idxs += [maxidx]
                 maxidx += 1
+    
+    print len(D)
 
     # make object
     for idx in idxs:
         txt = str(idx)
-        print(txt)
         for col in cols:
             try:
                 txt += '\t'+D[idx][col]
