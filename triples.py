@@ -1,4 +1,6 @@
 #!/usr/bin/python2.6
+import cgitb
+cgitb.enable()
 import cgi
 import sqlite3
 import datetime
@@ -66,17 +68,16 @@ elif 'summary' in args and 'file' in args:
 
     tstring = ''
     for t in sorted(taxa):
-        tstring += '<option value="'+t+'">'+t+'</option>'
+        tstring += '<option value="'+t.encode('utf-8')+'">'+t.encode('utf-8')+'</option>'
     cstrings = []
     for t in sorted(concepts):
-        cstrings += ['<option value="'+t+'">'+t+'</option>']
+        cstrings += ['<option value="'+t.encode('utf-8')+'">'+t.encode('utf-8')+'</option>']
     colstring = ''
     for t in sorted(columns):
-        colstring += '<option value="'+t+'">'+t+'</option>'
+        colstring += '<option value="'+t.encode('utf-8')+'">'+t.encode('utf-8')+'</option>'
     
     from template import html1,html2,script
 
-    #print len(cstrings) 
     out1 = html1.format(
         DOCULECTS = tstring
         )
