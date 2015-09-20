@@ -79,11 +79,7 @@ elif 'summary' in args and 'file' in args:
     from template import html1,html2,script
 
     out1 = html1.format(
-        DOCULECTS = tstring,
-        DBASE = args['file'].upper(),
-        DLEN = len(taxa),
-        CLEN = len(concepts),
-        COLEN = len(columns)
+        DOCULECTS = tstring
         )
     out2 = html2.format(
         COLUMNS = colstring,

@@ -10,9 +10,10 @@ html1 = r"""
 </head>
 <body>
   <div style="margin:10px">
-  <h1>Select your settings for the database</h1>
+  <h3>Select your settings for the {DBASE} database:</h3>
   <div>
-
+    <p>This database contains {DLEN} languages and {CLEN} concepts. Its values
+    are distributed over {COLEN} columns.</p>
     <p>Use this template to organize, which part of the database you want to 
     inspect, work on, or check. By using the selections below, you can choose which doculects should
     be displayed, which concepts the selection should contain, and which columns (the main fields of
