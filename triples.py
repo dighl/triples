@@ -1,4 +1,4 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python2.7
 import cgitb
 cgitb.enable()
 import cgi
@@ -76,30 +76,23 @@ elif 'summary' in args and 'file' in args:
     for t in sorted(columns):
         colstring += '<option value="'+t.encode('utf-8')+'">'+t.encode('utf-8')+'</option>'
     
-    from template import html1,html2,script
+    from template import html1,script
 
-    out1 = html1.format(
+    out = html1.format(
         DOCULECTS = tstring,
         DBASE = args['file'].upper(),
         DLEN = len(taxa),
         CLEN = len(concepts),
-        COLEN = len(columns)
-        )
-    out2 = html2.format(
+        COLEN = len(columns),
         COLUMNS = colstring,
         SCRIPT = script,
-        DBASE = args['file']
+        CONCEPTS = '\n'.join(cstrings),
+        DBASE2 = args['file']
         )
-
-    out = out1 + '\n'.join(cstrings) + out2
 
     print 'Content-Type: text/html'
     print
-    print out1
-    for i,t in enumerate(sorted(concepts)):
-        print '<option value="'+t.encode('utf-8')+'">' +t.encode('utf-8')+'</option>'
-        print 
-    print out2
+    print out
 
 # return most recent edits in the data
 elif 'date' in args:
