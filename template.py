@@ -3,13 +3,13 @@ html1 = r"""
 <head>
   <title>Lexical Databases with HELP of the EDICTOR</title>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <script src="script/jquery-1.10.2.js"></script>
-  <script src="script/bootstrap.min.js"></script>
-  <script src="script/bootstrap-multiselect.js"></script>
-  <link rel="stylesheet" type="text/css" href="script/main.css" />
+  <script src="../js/vendor/jquery-1.10.2.js"></script>
+  <script src="../js/vendor/bootstrap.min.js"></script>
+  <script src="../js/vendor/bootstrap-multiselect.js"></script>
+  <link rel="stylesheet" type="text/css" href="../css/main.css" />
 </head>
 <body>
-  <div style="margin:10px">
+  <div style="border-radius:10px;padding:10px;" class="bg-info form">
   <h3>Select your settings for the {DBASE} database:</h3>
   <div>
     <p>This database contains {DLEN} languages and {CLEN} concepts. Its values
@@ -21,22 +21,22 @@ html1 = r"""
     necessary parameters to the database application and can also be bookmarked for convenience.</p>
 
     <label>Select Doculects:
-      <select id="doculects" class="selex" multiple="" style="display: none;">
+      <select id="doculects" class="selex btn btn-primary submit" multiple="" style="display: none;">
 	{DOCULECTS}
       </select>
     </label>
     <br>
     <label>Select Concepts:
-      <select id="concepts" class="selex" multiple="" style="display: none;">"""
+      <select id="concepts" class="selex btn btn-primary submit" multiple="" style="display: none;">"""
 html2 = """
     </select></label>
     <br>
     <label>Select Columns: 
-  <select id="columns" class="selex" multiple="" style="display: none;">
+  <select id="columns" class="selex btn btn-primary submit" multiple="" style="display: none;">
     {COLUMNS}  
 </select></label>
   </div>
-  <button onclick="makeURL('{DBASE}');">SUBMIT</button>
+  <button class="btn btn-primary submit3" onclick="makeURL('{DBASE}');">SUBMIT</button>
   
   <div id="output"></div></div>
 <script>{SCRIPT}</script>
@@ -48,6 +48,7 @@ $('#concepts').multiselect({
       includeSelectAllOption : true,
       enableFiltering: true,
       enableCaseInsensitiveFiltering: true,
+      buttonClass : 'btn btn-primary mright submit pull-left'
  }
     );
 
@@ -56,6 +57,7 @@ $('#doculects').multiselect({
       includeSelectAllOption : true,
       enableFiltering: true,
       enableCaseInsensitiveFiltering: true,
+      buttonClass : 'btn btn-primary mright submit pull-left'
 }
     );
 
@@ -64,6 +66,7 @@ $('#columns').multiselect({
       includeSelectAllOption : true,
       enableFiltering: true,
       enableCaseInsensitiveFiltering: true,
+      buttonClass : 'btn btn-primary mright submit pull-left'
 }
     );
 
