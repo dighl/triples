@@ -9,10 +9,27 @@ print "Content-type: text/plain; charset=utf-8"
 
 # get the args of the url, convert nasty field storage to plain dictionary,
 # there is probably a better solution, but this works for the moment
-tmp_args = cgi.FieldStorage()
+xargs = dict(
+        remote_dbase = '',
+        file = '',
+        date = '',
+        new_id = '',
+        tables = '',
+        summary = '',
+        unique = '',
+        columns = '',
+        concepts = '',
+        doculects = '',
+        template = '',
+        history = '',
+        limit = '',
+        )
 args = {}
-for arg in tmp_args:
-    args[arg] = tmp_args[arg].value
+tmp_args = cgi.FieldStorage(environ={'REQUEST_METHOD':'POST'})
+for arg in xargs:
+    tmp = tmp_args.getvalue(arg)
+    if tmp:
+        args[arg] = tmp
 
 def get_max_id(args, cursor):
 
@@ -22,28 +39,6 @@ def get_max_id(args, cursor):
        'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
        )
    linesB = [x[0] for x in cursor.fetchall()]
-   try:
-       maxA = max(linesA)
-   except ValueError:
-       maxA = 0
-   try:
-       maxB = max(linesB)
-   except ValueError:
-       maxB = 0
-       
-   if maxA >= maxB:
-       return maxA + 1
-   else:
-       return maxB + 1
-
-def get_max_partialid(args, cursor):
-
-   cursor.execute('select DISTINCT ID from '+args['file']+';')
-   linesA = [max([int(y) for y in x[0].split(' ')]) for x in cursor.fetchall()]
-   cursor.execute(
-       'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
-       )
-   linesB = [max([int(y) for y in x[0].split(' ')]) for x in cursor.fetchall()]
    try:
        maxA = max(linesA)
    except ValueError:
@@ -230,8 +225,6 @@ elif 'file' in args and not 'unique' in args:
                 idxs += [maxidx]
                 maxidx += 1
     
-    print len(D)
-
     # make object
     for idx in idxs:
         txt = str(idx)
