@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python2.6
 import cgitb
 cgitb.enable()
 import cgi
@@ -22,6 +22,28 @@ def get_max_id(args, cursor):
        'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
        )
    linesB = [x[0] for x in cursor.fetchall()]
+   try:
+       maxA = max(linesA)
+   except ValueError:
+       maxA = 0
+   try:
+       maxB = max(linesB)
+   except ValueError:
+       maxB = 0
+       
+   if maxA >= maxB:
+       return maxA + 1
+   else:
+       return maxB + 1
+
+def get_max_partialid(args, cursor):
+
+   cursor.execute('select DISTINCT ID from '+args['file']+';')
+   linesA = [max([int(y) for y in x[0].split(' ')]) for x in cursor.fetchall()]
+   cursor.execute(
+       'select DISTINCT ID from backup where FILE = "'+args['file']+'";'
+       )
+   linesB = [max([int(y) for y in x[0].split(' ')]) for x in cursor.fetchall()]
    try:
        maxA = max(linesA)
    except ValueError:
@@ -142,7 +164,11 @@ elif 'new_id' in args:
         cogids = []
         for l in lines:
             try: cogids += [int(l)]
-            except: pass
+            except: 
+                try:
+                    cogids += [int(x) for x in l.split(' ')]
+                except: 
+                    pass
 
         print str(max(cogids)+1)
 
